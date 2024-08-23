@@ -19,7 +19,6 @@ export default function Home() {
     } catch (err) {
       console.error("Error fetching streams:", err);
       setError(err.message || "Failed to fetch streams. Please try again.");
-      // Keep the old streams data if there's an error
     } finally {
       setLoading(false);
     }
@@ -57,12 +56,15 @@ export default function Home() {
   };
 
   return (
-    <div>
+    <div className="w-full">
       <h1>Payment Streaming App</h1>
       {account ? (
         <>
-          <p>Connected: {account}</p>
-          <CreateStream onStreamCreated={fetchStreams} />
+          <div className="flex flex-col items-center mb-8">
+            <p>Connected: {account}</p>
+            <CreateStream onStreamCreated={fetchStreams} />
+          </div>
+
           {loading ? (
             <div>Loading streams...</div>
           ) : error ? (
@@ -71,7 +73,7 @@ export default function Home() {
               <button onClick={fetchStreams}>Retry</button>
             </div>
           ) : (
-            <StreamList streams={streams} />
+            <StreamList streams={streams} onStreamUpdate={fetchStreams} />
           )}
         </>
       ) : (

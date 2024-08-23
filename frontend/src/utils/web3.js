@@ -47,14 +47,13 @@ export const getActiveStreams = async () => {
     const currentAddress = await signer.getAddress();
     const streamCount = await contract.nextStreamId(currentAddress);
 
-    console.log("Fetching streams for address:", currentAddress);
+    console.log("Fetching streams for recipient:", currentAddress);
     console.log("Total stream count:", streamCount.toString());
 
     const streams = [];
     for (let i = 0; i < streamCount; i++) {
       const stream = await contract.streams(currentAddress, i);
 
-      // Check if the stream is active (has a non-zero deposit)
       if (stream.deposit.gt(0)) {
         const balance = await contract.calculateBalance(currentAddress, i);
 
@@ -66,6 +65,7 @@ export const getActiveStreams = async () => {
           ratePerSecond: ethers.utils.formatEther(stream.ratePerSecond),
           withdrawn: ethers.utils.formatEther(stream.withdrawn),
           remainingBalance: ethers.utils.formatEther(balance),
+          canWithdraw: true, // The current user is the recipient for these streams
         });
       }
     }
@@ -80,8 +80,14 @@ export const getActiveStreams = async () => {
 
 export const withdrawFromStream = async (streamId) => {
   if (!contract) await initializeWeb3();
-  const tx = await contract.withdraw(streamId);
-  await tx.wait();
+  try {
+    const tx = await contract.withdraw(streamId);
+    await tx.wait();
+    console.log(`Successfully withdrawn from stream ${streamId}`);
+  } catch (error) {
+    console.error(`Error withdrawing from stream ${streamId}:`, error);
+    throw new Error(`Failed to withdraw: ${error.message}`);
+  }
 };
 
 export const cancelStream = async (streamId) => {
