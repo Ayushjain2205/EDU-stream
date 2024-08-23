@@ -6,10 +6,12 @@ export default function CreateStream({ onStreamCreated }) {
   const [amount, setAmount] = useState("");
   const [duration, setDuration] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsCreating(true);
+    setError("");
     try {
       await createStream(recipient, amount, duration);
       setRecipient("");
@@ -20,6 +22,9 @@ export default function CreateStream({ onStreamCreated }) {
       }
     } catch (error) {
       console.error("Error creating stream:", error);
+      setError(
+        "Failed to create stream. Please check the console for more details."
+      );
       alert("Failed to create stream. Please try again.");
     } finally {
       setIsCreating(false);
@@ -29,6 +34,7 @@ export default function CreateStream({ onStreamCreated }) {
   return (
     <div className="max-w-md mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
       <h2 className="text-2xl font-bold mb-4">Create New Stream</h2>
+      {error && <p className="text-red-500">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label
