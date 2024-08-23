@@ -59,7 +59,7 @@ export const getActiveStreams = async () => {
     const currentAddress = await signer.getAddress();
     const streamCount = await contract.nextStreamId(currentAddress);
 
-    console.log("Fetching streams for recipient:", currentAddress);
+    console.log("Fetching streams for address:", currentAddress);
     console.log("Total stream count:", streamCount.toString());
 
     const streams = [];
@@ -71,13 +71,36 @@ export const getActiveStreams = async () => {
 
         streams.push({
           id: i,
+          recipient: currentAddress,
           deposit: ethers.utils.formatEther(stream.deposit),
           startTime: stream.startTime.toString(),
           endTime: stream.endTime.toString(),
           ratePerSecond: ethers.utils.formatEther(stream.ratePerSecond),
           withdrawn: ethers.utils.formatEther(stream.withdrawn),
           remainingBalance: ethers.utils.formatEther(balance),
-          canWithdraw: true,
+          isIncoming: true,
+        });
+      }
+    }
+
+    // Fetch outgoing streams
+    const outgoingStreamCount = await contract.nextStreamId(currentAddress);
+    for (let i = 0; i < outgoingStreamCount; i++) {
+      const stream = await contract.streams(currentAddress, i);
+
+      if (stream.deposit.gt(0)) {
+        const balance = await contract.calculateBalance(currentAddress, i);
+
+        streams.push({
+          id: i,
+          recipient: stream.recipient,
+          deposit: ethers.utils.formatEther(stream.deposit),
+          startTime: stream.startTime.toString(),
+          endTime: stream.endTime.toString(),
+          ratePerSecond: ethers.utils.formatEther(stream.ratePerSecond),
+          withdrawn: ethers.utils.formatEther(stream.withdrawn),
+          remainingBalance: ethers.utils.formatEther(balance),
+          isIncoming: false,
         });
       }
     }
