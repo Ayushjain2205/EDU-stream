@@ -84,7 +84,7 @@ export default function Home() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full p-4">
       <h1 className="text-2xl font-bold mb-4">Payment Streaming App</h1>
       <button
         onClick={handleConnectWallet}

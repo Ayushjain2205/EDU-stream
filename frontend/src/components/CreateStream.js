@@ -27,31 +27,73 @@ export default function CreateStream({ onStreamCreated }) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        placeholder="Recipient address"
-        value={recipient}
-        onChange={(e) => setRecipient(e.target.value)}
-        disabled={isCreating}
-      />
-      <input
-        type="number"
-        placeholder="Amount (in ETH)"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        disabled={isCreating}
-      />
-      <input
-        type="number"
-        placeholder="Duration (in seconds)"
-        value={duration}
-        onChange={(e) => setDuration(e.target.value)}
-        disabled={isCreating}
-      />
-      <button type="submit" disabled={isCreating}>
-        {isCreating ? "Creating..." : "Create Stream"}
-      </button>
-    </form>
+    <div className="max-w-md mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <h2 className="text-2xl font-bold mb-4">Create New Stream</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label
+            htmlFor="recipient"
+            className="block text-gray-700 text-sm font-bold mb-2"
+          >
+            Recipient Address
+          </label>
+          <input
+            id="recipient"
+            type="text"
+            placeholder="0x..."
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            disabled={isCreating}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="amount"
+            className="block text-gray-700 text-sm font-bold mb-2"
+          >
+            Amount (in ETH)
+          </label>
+          <input
+            id="amount"
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            disabled={isCreating}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="duration"
+            className="block text-gray-700 text-sm font-bold mb-2"
+          >
+            Duration (in seconds)
+          </label>
+          <input
+            id="duration"
+            type="number"
+            placeholder="3600"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            disabled={isCreating}
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <button
+            type="submit"
+            disabled={isCreating}
+            className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${
+              isCreating ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            {isCreating ? "Creating..." : "Create Stream"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
