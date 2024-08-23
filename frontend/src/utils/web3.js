@@ -57,51 +57,61 @@ export const getActiveStreams = async () => {
     if (!contract) await initializeWeb3();
 
     const currentAddress = await signer.getAddress();
-    const streamCount = await contract.nextStreamId(currentAddress);
 
     console.log("Fetching streams for address:", currentAddress);
-    console.log("Total stream count:", streamCount.toString());
 
     const streams = [];
-    for (let i = 0; i < streamCount; i++) {
-      const stream = await contract.streams(currentAddress, i);
 
-      if (stream.deposit.gt(0)) {
-        const balance = await contract.calculateBalance(currentAddress, i);
+    // Fetch all streams created by or for the current address
+    const streamCreatedFilter = contract.filters.StreamCreated(null, null);
+    const allStreamEvents = await contract.queryFilter(streamCreatedFilter);
 
-        streams.push({
-          id: i,
-          recipient: currentAddress,
-          deposit: ethers.utils.formatEther(stream.deposit),
-          startTime: stream.startTime.toString(),
-          endTime: stream.endTime.toString(),
-          ratePerSecond: ethers.utils.formatEther(stream.ratePerSecond),
-          withdrawn: ethers.utils.formatEther(stream.withdrawn),
-          remainingBalance: ethers.utils.formatEther(balance),
-          isIncoming: true,
+    console.log("Total stream events found:", allStreamEvents.length);
+
+    for (const event of allStreamEvents) {
+      try {
+        const { recipient, streamId, deposit, startTime, endTime } = event.args;
+
+        console.log("Processing stream event:", {
+          recipient,
+          streamId: streamId.toString(),
+          deposit: ethers.utils.formatEther(deposit),
+          startTime: startTime.toString(),
+          endTime: endTime.toString(),
         });
-      }
-    }
 
-    // Fetch outgoing streams
-    const outgoingStreamCount = await contract.nextStreamId(currentAddress);
-    for (let i = 0; i < outgoingStreamCount; i++) {
-      const stream = await contract.streams(currentAddress, i);
+        if (!recipient) {
+          console.warn("Skipping stream with undefined recipient");
+          continue;
+        }
 
-      if (stream.deposit.gt(0)) {
-        const balance = await contract.calculateBalance(currentAddress, i);
+        // Retrieve the stream details from the contract
+        const stream = await contract.streams(recipient, streamId);
+        const balance = await contract.calculateBalance(recipient, streamId);
 
-        streams.push({
-          id: i,
-          recipient: stream.recipient,
-          deposit: ethers.utils.formatEther(stream.deposit),
-          startTime: stream.startTime.toString(),
-          endTime: stream.endTime.toString(),
-          ratePerSecond: ethers.utils.formatEther(stream.ratePerSecond),
-          withdrawn: ethers.utils.formatEther(stream.withdrawn),
-          remainingBalance: ethers.utils.formatEther(balance),
-          isIncoming: false,
-        });
+        const isIncoming =
+          recipient.toLowerCase() === currentAddress.toLowerCase();
+
+        // Include the stream if the current address is either the recipient
+        // or if it's not the recipient (assuming it's the sender in this case)
+        if (isIncoming || (!isIncoming && stream.deposit.gt(0))) {
+          streams.push({
+            id: streamId.toNumber(),
+            sender: isIncoming ? "Unknown" : currentAddress,
+            recipient: recipient,
+            deposit: ethers.utils.formatEther(deposit),
+            startTime: startTime.toString(),
+            endTime: endTime.toString(),
+            ratePerSecond: ethers.utils.formatEther(stream.ratePerSecond),
+            withdrawn: ethers.utils.formatEther(stream.withdrawn),
+            remainingBalance: ethers.utils.formatEther(balance),
+            isIncoming: isIncoming,
+          });
+
+          console.log("Stream added:", streams[streams.length - 1]);
+        }
+      } catch (eventError) {
+        console.error("Error processing stream event:", eventError);
       }
     }
 
