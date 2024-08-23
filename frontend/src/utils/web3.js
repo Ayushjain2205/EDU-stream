@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import PaymentStreamABI from "../utils/contractABI.json";
 
-const contractAddress = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
+const contractAddress = "0xD5F6A5634f9B3AD47E1dcBAcFC4dAfA67b30c696";
 let provider, signer, contract;
 
 const initializeWeb3 = async () => {
