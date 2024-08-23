@@ -1,23 +1,35 @@
 import { ethers } from "ethers";
 import PaymentStreamABI from "../utils/contractABI.json";
 
-const contractAddress = "0x5fbdb2315678afecb367f032d93f642f64180aa3"; // Replace with the address from step 3
+const contractAddress = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 let provider, signer, contract;
 
 const initializeWeb3 = async () => {
-  // Connect to the local Hardhat network
-  provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
-
-  // Get the first account from the local network
-  const accounts = await provider.listAccounts();
-  signer = provider.getSigner(accounts[0]);
-
+  if (typeof window.ethereum !== "undefined") {
+    provider = new ethers.providers.Web3Provider(window.ethereum);
+    signer = provider.getSigner();
+  } else {
+    // Fallback to local provider if MetaMask is not available
+    provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+    const accounts = await provider.listAccounts();
+    signer = provider.getSigner(accounts[0]);
+  }
   contract = new ethers.Contract(contractAddress, PaymentStreamABI.abi, signer);
 };
 
 export const connectWallet = async () => {
-  await initializeWeb3();
-  return await signer.getAddress();
+  if (typeof window.ethereum !== "undefined") {
+    try {
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+      await initializeWeb3();
+      return await signer.getAddress();
+    } catch (error) {
+      console.error("Failed to connect wallet:", error);
+      throw new Error("Failed to connect wallet. Please try again.");
+    }
+  } else {
+    throw new Error("Please install MetaMask!");
+  }
 };
 
 export const getAccount = async () => {
@@ -65,7 +77,7 @@ export const getActiveStreams = async () => {
           ratePerSecond: ethers.utils.formatEther(stream.ratePerSecond),
           withdrawn: ethers.utils.formatEther(stream.withdrawn),
           remainingBalance: ethers.utils.formatEther(balance),
-          canWithdraw: true, // The current user is the recipient for these streams
+          canWithdraw: true,
         });
       }
     }
@@ -94,4 +106,16 @@ export const cancelStream = async (streamId) => {
   if (!contract) await initializeWeb3();
   const tx = await contract.cancelStream(streamId);
   await tx.wait();
+};
+
+export const listenToAccountChanges = (callback) => {
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", (accounts) => {
+      if (accounts.length > 0) {
+        initializeWeb3().then(() => callback(accounts[0]));
+      } else {
+        callback(null);
+      }
+    });
+  }
 };
