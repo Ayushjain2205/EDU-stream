@@ -53,21 +53,22 @@ export default function StreamList({ streams, onStreamUpdate }) {
       return (
         <div key={stream.id} className="border p-4 mb-4 rounded">
           <p>Stream ID: {stream.id}</p>
-          <p>
-            From:{" "}
-            {stream.sender === "Unknown" ? "Unknown Sender" : stream.sender}
-          </p>
+          <p>From: {stream.sender}</p>
           <p>To: {stream.recipient}</p>
-          <p>Deposit: {stream.deposit} ETH</p>
+          <p>Deposit: {parseFloat(stream.deposit).toFixed(6)} ETH</p>
           <p>
             Start Time:{" "}
-            {new Date(Number(stream.startTime) * 1000).toLocaleString()}
+            {new Date(parseInt(stream.startTime) * 1000).toLocaleString()}
           </p>
           <p>
-            End Time: {new Date(Number(stream.endTime) * 1000).toLocaleString()}
+            End Time:{" "}
+            {new Date(parseInt(stream.endTime) * 1000).toLocaleString()}
           </p>
-          <p>Withdrawn: {stream.withdrawn} ETH</p>
-          <p>Remaining Balance: {stream.remainingBalance} ETH</p>
+          <p>Withdrawn: {parseFloat(stream.withdrawn).toFixed(6)} ETH</p>
+          <p>
+            Remaining Balance: {parseFloat(stream.remainingBalance).toFixed(6)}{" "}
+            ETH
+          </p>
           {stream.isIncoming && hasRemainingBalance && (
             <button
               onClick={() => handleWithdraw(stream.id)}

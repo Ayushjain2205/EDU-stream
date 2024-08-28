@@ -1,20 +1,20 @@
 import { ethers } from "ethers";
-import PaymentStreamABI from "../utils/contractABI.json";
+import PaymentStreamArtifact from "../utils/contractABI.json";
 
-const contractAddress = "0xD5F6A5634f9B3AD47E1dcBAcFC4dAfA67b30c696";
+const contractAddress = "0x66A0101be94047134bDe1A124bbFF3bF3a80042C"; // Replace with your deployed contract address
 let provider, signer, contract;
+
+// Extract the ABI from the artifact
+const PaymentStreamABI = PaymentStreamArtifact.abi;
 
 const initializeWeb3 = async () => {
   if (typeof window.ethereum !== "undefined") {
     provider = new ethers.providers.Web3Provider(window.ethereum);
     signer = provider.getSigner();
   } else {
-    // Fallback to local provider if MetaMask is not available
-    provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
-    const accounts = await provider.listAccounts();
-    signer = provider.getSigner(accounts[0]);
+    throw new Error("Please install MetaMask!");
   }
-  contract = new ethers.Contract(contractAddress, PaymentStreamABI.abi, signer);
+  contract = new ethers.Contract(contractAddress, PaymentStreamABI, signer);
 };
 
 export const connectWallet = async () => {
@@ -62,56 +62,44 @@ export const getActiveStreams = async () => {
 
     const streams = [];
 
-    // Fetch all streams created by or for the current address
-    const streamCreatedFilter = contract.filters.StreamCreated(null, null);
+    // Fetch all StreamCreated events
+    const streamCreatedFilter = contract.filters.StreamCreated();
     const allStreamEvents = await contract.queryFilter(streamCreatedFilter);
 
     console.log("Total stream events found:", allStreamEvents.length);
 
     for (const event of allStreamEvents) {
-      try {
-        const { recipient, streamId, deposit, startTime, endTime } = event.args;
+      const { recipient, streamId } = event.args;
 
-        console.log("Processing stream event:", {
-          recipient,
-          streamId: streamId.toString(),
-          deposit: ethers.utils.formatEther(deposit),
-          startTime: startTime.toString(),
-          endTime: endTime.toString(),
-        });
+      // Check if the current address is either the recipient or the sender
+      const isIncoming =
+        recipient.toLowerCase() === currentAddress.toLowerCase();
+      const isOutgoing =
+        event.args[0].toLowerCase() === currentAddress.toLowerCase(); // Assuming the first argument is the sender
 
-        if (!recipient) {
-          console.warn("Skipping stream with undefined recipient");
-          continue;
-        }
-
-        // Retrieve the stream details from the contract
-        const stream = await contract.streams(recipient, streamId);
-        const balance = await contract.calculateBalance(recipient, streamId);
-
-        const isIncoming =
-          recipient.toLowerCase() === currentAddress.toLowerCase();
-
-        // Include the stream if the current address is either the recipient
-        // or if it's not the recipient (assuming it's the sender in this case)
-        if (isIncoming || (!isIncoming && stream.deposit.gt(0))) {
+      if (isIncoming || isOutgoing) {
+        const stream = await contract.streams(
+          isOutgoing ? currentAddress : recipient,
+          streamId
+        );
+        if (stream.deposit.gt(0)) {
+          const balance = await contract.calculateBalance(
+            isOutgoing ? currentAddress : recipient,
+            streamId
+          );
           streams.push({
-            id: streamId.toNumber(),
-            sender: isIncoming ? "Unknown" : currentAddress,
+            id: streamId.toString(),
+            sender: isOutgoing ? currentAddress : event.args[0],
             recipient: recipient,
-            deposit: ethers.utils.formatEther(deposit),
-            startTime: startTime.toString(),
-            endTime: endTime.toString(),
+            deposit: ethers.utils.formatEther(stream.deposit),
+            startTime: stream.startTime.toString(),
+            endTime: stream.endTime.toString(),
             ratePerSecond: ethers.utils.formatEther(stream.ratePerSecond),
             withdrawn: ethers.utils.formatEther(stream.withdrawn),
             remainingBalance: ethers.utils.formatEther(balance),
             isIncoming: isIncoming,
           });
-
-          console.log("Stream added:", streams[streams.length - 1]);
         }
-      } catch (eventError) {
-        console.error("Error processing stream event:", eventError);
       }
     }
 
